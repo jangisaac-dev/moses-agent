@@ -1,6 +1,6 @@
 # Moses — Universal Team-Lead Orchestrator
 
-> A callable OpenCode agent that receives high-level instructions, delegates to specialist workers, collects evidence, and never marks work complete without explicit user approval.
+> A callable OpenCode agent that **discovers** available agents, tools, skills, and MCP servers at runtime, delegates to the right specialists, collects evidence, and never marks work complete without explicit user approval.
 
 ---
 
@@ -8,14 +8,14 @@
 
 1. [What Is Moses](#what-is-moses)
 2. [Architecture](#architecture)
-3. [How It Works — The Full Process](#how-it-works--the-full-process)
-4. [Domain Classification Matrix](#domain-classification-matrix)
-5. [Delegation Packet Schema](#delegation-packet-schema)
-6. [Completion Gates](#completion-gates)
-7. [Repair Loop Policy](#repair-loop-policy)
-8. [Installation](#installation)
-9. [Usage](#usage)
-10. [Evidence Artifacts](#evidence-artifacts)
+3. [Discovery Protocol — How Moses Finds Workers](#discovery-protocol--how-moses-finds-workers)
+4. [Dynamic Routing Engine](#dynamic-routing-engine)
+5. [How It Works — The Full Process](#how-it-works--the-full-process)
+6. [Delegation Packet Schema](#delegation-packet-schema)
+7. [Completion Gates](#completion-gates)
+8. [Repair Loop Policy](#repair-loop-policy)
+9. [Installation](#installation)
+10. [Usage](#usage)
 11. [v1 Scope & Boundaries](#v1-scope--boundaries)
 
 ---
@@ -24,21 +24,23 @@
 
 Moses is a **separate callable agent** (`@moses`) — not a modification of any existing agent. It acts as a universal team lead:
 
+- **Discovers** what agents, tools, skills, and MCP servers are available in the runtime
 - **Receives** a high-level user instruction
 - **Classifies** the domain and intent
 - **Plans** the execution approach
-- **Delegates** to specialist workers (never does the work itself for non-trivial tasks)
+- **Delegates** to the best available specialist (never does the work itself for non-trivial tasks)
 - **Collects** QA and review evidence from workers
 - **Presents** outcomes with evidence and asks for explicit user approval
 - **Never** declares completion without user consent
 
 ### Design Philosophy
 
-Moses is built on three non-negotiable principles:
+Moses is built on four non-negotiable principles:
 
-1. **Planning-first** — every substantive request begins with classification, clarification, and a short execution plan
-2. **Delegation-first** — real production work is always routed to specialists; Moses orchestrates, never implements
-3. **Evidence-gated** — no task is complete without verifiable evidence and explicit user approval
+1. **Discovery-first** — always verify what's available before routing; never assume
+2. **Planning-first** — every substantive request begins with classification, clarification, and a short execution plan
+3. **Delegation-first** — real production work is always routed to specialists; Moses orchestrates, never implements
+4. **Evidence-gated** — no task is complete without verifiable evidence and explicit user approval
 
 ---
 
@@ -55,22 +57,22 @@ Moses is built on three non-negotiable principles:
 │                       MOSES                              │
 │              (Team-Lead Orchestrator)                     │
 │                                                          │
-│  ┌──────────┐  ┌──────────┐  ┌───────────┐              │
-│  │  Intake  │→ │  Routing │→ │Supervision│              │
-│  └──────────┘  └──────────┘  └─────┬─────┘              │
+│  ┌───────────┐  ┌──────────┐  ┌──────────┐              │
+│  │ Discovery │→ │  Intake  │→ │  Routing │              │
+│  └───────────┘  └──────────┘  └────┬─────┘              │
 │                                    │                     │
 │  ┌──────────┐  ┌──────────┐  ┌─────▼─────┐              │
-│  │ Approval │← │Verification│←│ Execution │              │
-│  │  Gate    │  │          │  │ (Workers) │              │
+│  │ Approval │← │Verification│←│Supervision│              │
+│  │  Gate    │  │          │  │           │              │
 │  └──────────┘  └──────────┘  └───────────┘              │
 └──────────────────────┬──────────────────────────────────┘
                        │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-     ┌────────┐  ┌──────────┐  ┌──────────┐
-     │ build  │  │ reviewers│  │ specialists│
-     │        │  │          │  │            │
-     └────────┘  └──────────┘  └──────────┘
+     ┌─────────────────┼─────────────────┐
+     ▼                 ▼                 ▼
+┌─────────┐     ┌──────────┐     ┌──────────────┐
+│ Agents  │     │   Tools  │     │ Skills + MCP │
+│(dynamic)│     │(built-in)│     │  (external)  │
+└─────────┘     └──────────┘     └──────────────┘
 ```
 
 ### Agent Registration
@@ -93,83 +95,152 @@ temperature: 0.2
 maxSteps: 24
 permission:
   task:
-    "*": ask
-    "build": allow
-    "light-runner": allow
-    "tech-blogger": allow
-    # ... 11 allowed delegate agents
+    "*": allow
 ---
 ```
 
-### Allowed Delegate Agents
+Moses has full task permission (`"*": allow`) so it can delegate to any available agent, tool, skill, or MCP server discovered at runtime.
 
-| Agent | Role |
-|-------|------|
-| `build` | General implementation (coding, infrastructure, browser) |
-| `light-runner` | Quick execution, QA checks |
-| `tech-blogger` | Technical and creative writing |
-| `theology` | Theology orchestration |
-| `sermon-architect` | Sermon structure design |
-| `sermon-editor` | Sermon manuscript polishing |
-| `theological-writer` | Theological long-form writing |
-| `academic-architect` | Academic paper blueprint |
-| `academic-reviewer` | Academic draft review |
-| `note-architect` | Bible note structure |
-| `note-reviewer` | Bible note review |
+---
+
+## Discovery Protocol — How Moses Finds Workers
+
+**This is the core differentiator.** Unlike static orchestrators that hardcode worker lists, Moses discovers what's actually available in the runtime environment before every non-trivial request.
+
+### Step 1: Discover Available Agents
+
+Moses queries the runtime for all callable agents and captures:
+- Agent name, mode (primary vs subagent), description, model, permissions
+- Which agents are available for delegation
+
+### Step 2: Discover Available Tools
+
+Moses enumerates all tools available in the current session:
+- Built-in tools (file operations, bash, search, etc.)
+- MCP-provided tools from connected servers
+- Tool capabilities and input/output schemas
+
+### Step 3: Discover Available Skills
+
+Moses lists all loaded skills and their descriptions:
+- Skill name, domain, when to use
+- Associated MCP server configurations
+- Auto-trigger keywords if documented
+
+### Step 4: Discover Available MCP Servers
+
+Moses checks connected MCP servers:
+- Server name, connection status
+- Available tools per server
+- Resource and prompt capabilities
+
+### Step 5: Build the Worker Registry
+
+Moses compiles all discovered capabilities into an internal registry:
+
+| Tier | Source | Example |
+|------|--------|---------|
+| **Tier 1** | Callable agents matched by domain | `build`, `theology`, `tech-blogger` |
+| **Tier 2** | Direct tools and MCP tool chains | `bash`, `grep`, `context7_query-docs` |
+| **Tier 3** | Skills with relevant MCP configs | `ui-ux-pro-max` + shadcn MCP |
+| **Tier 4** | Strongest available general worker | Fallback to most capable agent |
+
+---
+
+## Dynamic Routing Engine
+
+After discovery, Moses routes work through this decision tree:
+
+```
+User Request
+    │
+    ▼
+Classify Domain
+    │
+    ▼
+Is there a known specialist agent? ──YES──> Delegate to that agent
+    │
+    NO
+    ▼
+Is there a discovered agent that matches? ──YES──> Delegate to best-match agent
+    │
+    NO
+    ▼
+Is there a tool / MCP chain that can do it? ──YES──> Execute through tool chain
+    │
+    NO
+    ▼
+Is there a skill with relevant MCP? ──YES──> Load skill + use MCP tools
+    │
+    NO
+    ▼
+Escalate: explain missing capability, present alternatives, ask user
+```
+
+### Routing Priority
+
+1. **Domain-matched specialist agent** — e.g., coding → `build`, theology → `theology`
+2. **Best-fit discovered agent** — by name, description, and permissions
+3. **Tool chain** — sequence of built-in or MCP tools that accomplish the task
+4. **Skill + MCP** — load relevant skill, use its MCP server tools
+5. **Strongest available general worker** — document the fallback explicitly
+
+### External Agent Finder
+
+When a request requires a capability outside the known sub-agent set:
+1. Query the runtime for all available callable agents
+2. Filter by domain relevance (name, description, mode, permissions)
+3. Select the best match and prepare a standard Delegation Packet
+4. If multiple candidates exist, choose the most specialized one
+5. If no agent matches, escalate to tool/MCP/skill discovery
+
+### Tool / Skill / MCP Finder
+
+When agent-level delegation is not sufficient:
+1. Enumerate available tools in the current session
+2. Enumerate loaded skills and their MCP server configurations
+3. Enumerate connected MCP servers and their available tools
+4. Select the most capable tool chain for the task
+5. Execute through the selected tool chain and collect output as evidence
+
+### Fallback Guarantee
+
+If no suitable external worker, tool, skill, or MCP is found:
+- Explain what capability is missing
+- Present the closest available alternative
+- Ask the user whether to proceed with the alternative or wait for the right capability
+- Do not fabricate outputs or simulate unavailable workers
 
 ---
 
 ## How It Works — The Full Process
 
-### Step 1: Intake
+### Step 1: Discovery (Mandatory)
 
-When a user gives Moses a request, Moses:
+Before routing any non-trivial request, Moses runs the full Discovery Protocol:
+1. Discover available agents
+2. Discover available tools
+3. Discover available skills
+4. Discover available MCP servers
+5. Build the worker registry
 
-1. **Classifies** the request into one of 12 domains (see [Domain Classification Matrix](#domain-classification-matrix))
+### Step 2: Intake
+
+After discovery, Moses:
+1. **Classifies** the request against discovered capabilities
 2. **Identifies** missing constraints that would materially change execution
 3. **Asks** targeted clarifying questions (minimum necessary, not exhaustive)
 4. **Proposes** a short execution plan before any work begins
 
-```
-User: "Add authentication to the app"
-Moses:
-  Domain: coding
-  Clarifying: What auth provider? (JWT, OAuth, session-based?)
-  Plan: 1) Design auth schema 2) Implement endpoints 3) Add login UI 4) Test
-```
+### Step 3: Routing
 
-### Step 2: Routing
+Moses selects the **primary worker** from the worker registry, then chooses **supporting reviewers** if the task is non-coding.
 
-Moses selects the **primary worker** based on the domain classification matrix, then chooses **supporting reviewers** if the task is non-coding.
+### Step 4: Delegation
 
-Key routing decisions:
-- Coding → `build`
-- Research → `build` with `oracle + librarian` cross-check
-- Technical writing → `tech-blogger` with `oracle` as fallback reviewer
-- Design → `frontend-ui-ux-engineer` (preferred), otherwise `build`
-- Scholarly writing → `academic-architect` + `academic-reviewer`
+Every delegated task includes a **Delegation Packet** with exactly six fields (see [Delegation Packet Schema](#delegation-packet-schema)).
 
-### Step 3: Delegation
-
-Every delegated task includes a **Delegation Packet** with exactly six fields:
-
-```yaml
-delegation_packet:
-  objective: "Implement JWT authentication endpoint"
-  constraints:
-    - "Use existing auth middleware pattern"
-    - "No hardcoded secrets"
-  expected_output:
-    - "POST /api/auth/login endpoint"
-    - "Token generation utility"
-  verification:
-    - "Tests pass for valid/invalid credentials"
-    - "Lint and typecheck clean"
-  stop_condition: "Return implementation + test results"
-  retry_rule: "One revision cycle if tests fail"
-```
-
-### Step 4: Execution Supervision
+### Step 5: Execution Supervision
 
 Moses delegates the task and waits for the worker to return. It does **not** execute the work itself. When the worker returns:
 
@@ -177,7 +248,7 @@ Moses delegates the task and waits for the worker to return. It does **not** exe
 2. If the output passes, Moses proceeds to the completion gate
 3. If the output fails, Moses enters the [Repair Loop](#repair-loop-policy)
 
-### Step 5: Verification
+### Step 6: Verification
 
 Moses applies the appropriate completion gate:
 
@@ -186,7 +257,7 @@ Moses applies the appropriate completion gate:
 
 Moses **never** treats a worker's self-reported "done" as sufficient evidence. It independently verifies.
 
-### Step 6: Approval Gate
+### Step 7: Approval Gate
 
 Moses presents to the user:
 
@@ -195,27 +266,6 @@ Moses presents to the user:
 3. A clear question: accept, revise, or continue
 
 **The task is not complete until the user explicitly approves.**
-
----
-
-## Domain Classification Matrix
-
-| Domain | Typical Request | Primary Route |
-|--------|----------------|---------------|
-| `coding` | implement, fix, refactor, add feature | `build` |
-| `design` | UI/UX, visual concepts, layout, styling | `frontend-ui-ux-engineer` or `build` |
-| `qa` | verify, review, test, compare outputs | `light-runner` or reviewer specialist |
-| `research` | investigate, compare, analyze sources | `build` + `oracle` + `librarian` |
-| `browser` | browser automation, scraping, web workflows | `build` (browser-capable) |
-| `infrastructure` | DevOps, deployment, CI/CD, environments | `build` or strongest technical worker |
-| `writing-business` | email, memo, report, professional copy | `tech-blogger` or `build` |
-| `writing-creative` | blog, essay, narrative-style draft | `tech-blogger` |
-| `writing-technical` | technical article, docs, tutorials | `tech-blogger` + `oracle` reviewer |
-| `writing-scholarly` | theology paper, academic argument | `academic-architect` + `academic-reviewer` |
-| `theology-sermon` | sermon structure or manuscript | `theology`, `sermon-architect`, `theological-writer`, `sermon-editor` |
-| `bible-note` | verse-anchored Bible note | `note-architect`, `note-reviewer`, or `theology` |
-
-When a request spans multiple domains, Moses identifies the dominant outcome and sequences supporting domains.
 
 ---
 
@@ -255,12 +305,6 @@ Coding work may be presented as ready **only if all three** are present:
 
 If any of the three is missing, the work is **not complete**.
 
-Required evidence examples:
-- Diff summary
-- Changed file list
-- Test output
-- Lint/typecheck/manual QA notes
-
 ### B) Non-Coding Completion Gate
 
 Non-coding work may be presented as ready **only if all three** are present:
@@ -268,17 +312,6 @@ Non-coding work may be presented as ready **only if all three** are present:
 1. **Primary output** exists
 2. **Review evidence** from 1–3 reviewers
 3. **User approval** is explicitly obtained
-
-Reviewer selection rules:
-
-| Domain | Reviewer |
-|--------|----------|
-| writing-scholarly | `theology` or `academic-reviewer` |
-| writing-technical | Technical reviewer, otherwise `oracle` |
-| research | `oracle + librarian` cross-check |
-| design | `frontend-ui-ux-engineer` or `build` |
-| theology-sermon | `theology`, `sermon-editor`, or theology reviewer |
-| bible-note | `note-reviewer` |
 
 - **Minimum reviewers:** 1
 - **Maximum reviewers:** 3
@@ -317,7 +350,7 @@ After 3 failed attempts, Moses:
 
 1. Clone this repository:
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/jangisaac-dev/moses-agent.git
    cd moses-agent
    ```
 
@@ -353,14 +386,16 @@ After 3 failed attempts, Moses:
 
 ### What to Expect
 
-1. Moses will classify your request and ask clarifying questions if needed
-2. Moses will propose an execution plan
-3. Moses will delegate to specialist workers
-4. Moses will collect evidence and present results
-5. Moses will ask for your explicit approval before marking complete
+1. Moses runs discovery to find available agents, tools, skills, and MCPs
+2. Moses classifies your request and asks clarifying questions if needed
+3. Moses proposes an execution plan based on discovered capabilities
+4. Moses delegates to the best available specialist workers
+5. Moses collects evidence and presents results
+6. Moses asks for your explicit approval before marking complete
 
 ### What Moses Will NOT Do
 
+- Skip discovery and assume what's available
 - Execute implementation work directly (delegates to specialists)
 - Mark work complete without your approval
 - Apply automatic stylistic rewriting
@@ -369,35 +404,18 @@ After 3 failed attempts, Moses:
 
 ---
 
-## Evidence Artifacts
-
-The `evidence/` directory contains verification artifacts from the Moses implementation cycle:
-
-| File | Purpose |
-|------|---------|
-| `task-6-agent-list.txt` | `opencode agent list` output proving Moses is registered |
-| `task-6-agent-load.txt` | Agent load verification |
-| `task-6-coding-scenario.txt` | Multi-turn session transcript: coding workflow with approval gate |
-| `task-6-writing-scenario.txt` | Multi-turn session transcript: technical writing with review gate |
-| `task-6-browser-infra-scenario.txt` | Multi-turn session transcript: browser + infrastructure workflow |
-| `task-6-repair-scenario.txt` | Multi-turn session transcript: repair loop escalation after 3 failures |
-| `task-6-domain-mapping.txt` | Domain classification coverage verification |
-| `task-6-policy-keywords.txt` | Policy keyword presence verification |
-
-Each scenario file includes `SESSION_ID`, `TURN_1_SOURCE`, and `TURN_2_SOURCE` markers proving real multi-turn session continuity.
-
----
-
 ## v1 Scope & Boundaries
 
 ### What v1 Includes
 
 - Explicit Moses invocation (`@moses`)
+- **Mandatory runtime discovery** (agents, tools, skills, MCPs)
+- **Dynamic routing** based on discovered capabilities
 - Planning-first intake
 - Delegation-first routing
 - Coding completion gate (code + QA + user approval)
 - Non-coding review gate (output + review + user approval)
-- Conditional stylistic rewriting policy (recommendation-only, never automatic)
+- Conditional stylistic rewriting policy (never automatic)
 - Finite repair loops with escalation (max 3 retries)
 
 ### What v1 Does NOT Include
