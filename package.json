@@ -1,0 +1,43 @@
+{
+  "name": "moses-agent",
+  "version": "0.1.0",
+  "description": "Downloadable Moses orchestrator agent package for OpenCode.",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jangisaac-dev/moses-agent.git"
+  },
+  "homepage": "https://github.com/jangisaac-dev/moses-agent",
+  "bugs": {
+    "url": "https://github.com/jangisaac-dev/moses-agent/issues"
+  },
+  "bin": {
+    "moses-agent": "./bin/moses-install.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE",
+    "install.sh",
+    "uninstall.sh",
+    "docs"
+  ],
+  "scripts": {
+    "help": "node ./bin/moses-install.js help",
+    "validate": "node ./bin/moses-install.js validate",
+    "install:local": "node ./bin/moses-install.js install",
+    "uninstall:local": "node ./bin/moses-install.js uninstall"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "opencode",
+    "agent",
+    "moses",
+    "orchestrator",
+    "oh-my-opencode"
+  ]
+}
