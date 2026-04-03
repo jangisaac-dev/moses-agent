@@ -1,20 +1,96 @@
 # moses-agent
 
+한국어 문서는 [`README.ko.md`](./README.ko.md)에서 볼 수 있습니다.
+
 Reusable Moses orchestrator agent package for OpenCode-style environments.
 
-`moses-agent` packages the Moses prompt as a small, installable repository so you can keep the agent under version control, install it into a local agent directory, review it before use, and distribute it as a Git repository without bundling unrelated project configuration.
+Install Moses into your local OpenCode agent directory, reload your session, and call it as `@moses`.
+
+`moses-agent` packages the Moses prompt as a small, reviewable repository so you can keep the agent under version control, install it consistently across machines, and distribute it without bundling unrelated project configuration.
+
+---
+
+## Installation
+
+### Requirements
+
+- Node.js `>=18`
+- Unix-like environment using the standard OpenCode-style agent directory
+
+### Fast path
+
+```bash
+git clone https://github.com/jangisaac-dev/moses-agent.git moses-agent && cd moses-agent && node bin/moses-install.js validate && ./install.sh
+```
+
+This is the easiest supported install flow today.
+
+If `validate` shows that the existing target is unmanaged and `forceRequiredForInstall` is `true`, stop and review before replacing anything.
+
+### For humans
+
+The fastest local install flow:
+
+```bash
+git clone https://github.com/jangisaac-dev/moses-agent.git moses-agent
+cd moses-agent
+node bin/moses-install.js validate
+./install.sh
+```
+
+Then reload or restart your OpenCode session. If the runtime reads `~/.config/opencode/agents`, Moses becomes callable as `@moses`.
+
+If you prefer the CLI directly:
+
+```bash
+node bin/moses-install.js install
+```
+
+After installation, verify the target path and management state:
+
+```bash
+node bin/moses-install.js validate
+```
+
+### For AI agents
+
+Paste this into your coding agent:
+
+```text
+Clone https://github.com/jangisaac-dev/moses-agent.git into a local folder named moses-agent, read README.md and docs/installation.md, run `node bin/moses-install.js validate`, explain whether `forceRequiredForInstall` is true and why, and only if the target/path looks correct run `./install.sh`. After that, tell me the installed target path, whether a backup was created, and remind me to reload or restart OpenCode so `@moses` becomes available.
+```
+
+This keeps the AI-agent flow close to oh-my-opencode's "give the agent a concrete installation task" style, while only using commands this repository actually supports today.
+
+### Default install target
+
+```text
+~/.config/opencode/agents/moses.md
+```
+
+If your runtime uses a different path, install with `--target` and `--force`.
+
+```bash
+node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.custom.md" --force
+```
+
+### Manual installation
+
+If you do not want to run the installer CLI, use the step-by-step manual copy flow in [`docs/manual-install.md`](./docs/manual-install.md).
+
+For the full install guide used by both humans and AI agents, see [`docs/installation.md`](./docs/installation.md).
 
 ---
 
 ## Contents
 
+- [Installation](#installation)
 - [What this package does](#what-this-package-does)
 - [Who this is for](#who-this-is-for)
-- [v0.1 scope](#v01-scope)
+- [v1.0.1 scope](#v101-scope)
 - [What is intentionally out of scope](#what-is-intentionally-out-of-scope)
 - [Repository layout](#repository-layout)
 - [Supported install model](#supported-install-model)
-- [Quick start](#quick-start)
 - [CLI commands](#cli-commands)
 - [Install behavior](#install-behavior)
 - [Safety model](#safety-model)
@@ -50,9 +126,9 @@ Use `moses-agent` if you want to:
 - review install behavior before writing into your config directory,
 - package the agent for private or public GitHub distribution.
 
-## v0.1 scope
+## v1.0.1 scope
 
-Version `0.1.x` is intentionally narrow.
+Version `1.0.1` keeps the package intentionally focused.
 
 Included:
 
@@ -67,7 +143,7 @@ Included:
 
 ## What is intentionally out of scope
 
-Not included in v0.1:
+Not included in v1.0.1:
 
 - automatic OpenCode config mutation outside the agent target file
 - plugin runtime hooks
@@ -82,6 +158,7 @@ Not included in v0.1:
 ```text
 moses-agent/
 ├── README.md
+├── README.ko.md
 ├── LICENSE
 ├── .gitignore
 ├── package.json
@@ -96,6 +173,7 @@ moses-agent/
 │   └── templates/
 │       └── agent.md
 └── docs/
+    ├── installation.md
     ├── manual-install.md
     └── release.md
 ```
@@ -248,7 +326,7 @@ The uninstall command:
 - requires `--force` for non-default targets,
 - removes the file only when the safety rules permit it.
 
-It does **not** automatically restore backups. Backup restoration is intentionally manual in v0.1 because multiple candidate backups may exist and automatic selection would be error-prone.
+It does **not** automatically restore backups. Backup restoration is intentionally manual in v1.0.1 because multiple candidate backups may exist and automatic selection would be error-prone.
 
 After uninstall, reload or restart your OpenCode session. If no replacement agent file exists at the relevant target path, `@moses` should no longer be available.
 
@@ -284,7 +362,7 @@ Release notes and checklist details are in:
 - Ownership detection is marker-based, not cryptographic.
 - The package manages a single agent file; it does not manage broader runtime configuration.
 - Backup restoration is manual.
-- Full CI and cross-platform coverage are not included in v0.1.
+- Full CI and cross-platform coverage are not included in v1.0.1.
 
 ## License
 

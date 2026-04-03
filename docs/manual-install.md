@@ -1,5 +1,7 @@
 # Manual installation
 
+Use this flow if you want the same end result as the installer without executing `install.sh` or `node bin/moses-install.js install`.
+
 ## Default install target
 
 The default install target is:
@@ -17,6 +19,8 @@ If your runtime loads agents from a different path, use the CLI with `--target` 
 1. Create the target directory if it does not exist.
 2. Back up any existing `moses.md`.
 3. Copy `src/templates/agent.md` to the target path.
+4. Reload or restart OpenCode.
+5. Confirm `@moses` becomes callable.
 
 Example:
 
@@ -44,6 +48,21 @@ Check that the installed target exists and that the CLI reports the expected own
 
 ```bash
 node ./bin/moses-install.js validate
+```
+
+## Compare with the installer
+
+Manual install reaches the same target file as the installer, but it does not:
+
+- create timestamped backups automatically,
+- detect managed vs unmanaged targets for you,
+- print structured JSON results.
+
+If you want those safety checks, prefer:
+
+```bash
+node ./bin/moses-install.js validate
+./install.sh
 ```
 
 ## Notes
