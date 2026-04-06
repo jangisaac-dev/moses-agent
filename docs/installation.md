@@ -17,8 +17,10 @@ This repository does **not** currently ship a published `npx`/`bunx` installer. 
 Paste this into your coding agent:
 
 ```text
-Clone https://github.com/jangisaac-dev/moses-agent.git into a local folder named moses-agent, read README.md and docs/installation.md, run `node bin/moses-install.js validate`, explain whether `forceRequiredForInstall` is true and why, and only if the target/path looks correct run `./install.sh`. After that, tell me the installed target path, whether a backup was created, and remind me to reload or restart OpenCode so `@moses` becomes available.
+Clone https://github.com/jangisaac-dev/moses-agent.git into a local folder named moses-agent, read README.md and docs/installation.md, run `node bin/moses-install.js validate`, explain whether `forceRequiredForInstall` is true and why, and only if the target directory looks correct run `./install.sh`. After that, tell me the installed target directory, which bundle files were written, whether backups were created, and remind me to reload or restart OpenCode so `@moses` becomes available.
 ```
+
+The supervising agent should remain planner/orchestrator-only during install, delegate concrete execution to a distinct installer/executor worker, and report evidence back through one user-facing voice rather than mixing supervision and execution in the same role.
 
 The agent should:
 
@@ -27,8 +29,8 @@ The agent should:
 3. run `node bin/moses-install.js validate`,
 4. explain whether install looks safe as-is or whether `--force` would be required,
 5. run `./install.sh` or `node bin/moses-install.js install` only when appropriate,
-6. report the installed target path,
-7. report whether a backup was created,
+6. report the installed target directory and bundle files,
+7. report whether backups were created,
 8. remind the user to reload or restart OpenCode so `@moses` becomes available.
 
 This gives AI agents a concrete install mission similar in spirit to oh-my-opencode, but without claiming unsupported package-manager flows.
@@ -64,16 +66,18 @@ If you do not want to run the installer CLI, follow [`docs/manual-install.md`](.
 
 ## Supported install target
 
-Default target:
+Default target directory:
 
 ```text
-~/.config/opencode/agents/moses.md
+~/.config/opencode/agents
 ```
 
-Custom target example:
+The installer writes `moses.md` plus bundled `moses-*.md` prompts into this directory.
+
+Custom target directory example:
 
 ```bash
-node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.custom.md" --force
+node bin/moses-install.js install --target-dir "$HOME/.config/opencode/agents-custom" --force
 ```
 
 Non-default targets require `--force` by design.
@@ -88,10 +92,11 @@ node bin/moses-install.js validate
 
 Check for:
 
-- `templateExists: true`
-- `templateHasManagedMarker: true`
-- the expected `targetPath`
-- whether `targetLooksManaged` is true after installation
+- `ok: true`
+- the expected `targetDir`
+- `installedFiles` entries for `moses.md` and the bundled `moses-*.md` prompts
+- `templateExists: true` and `templateHasManagedMarker: true` for the installed bundle
+- whether each installed target looks managed after installation
 
 Then reload or restart your OpenCode session and confirm `@moses` is callable.
 
@@ -117,5 +122,5 @@ Reload or restart OpenCode. Then confirm your runtime actually reads the target 
 Use:
 
 ```bash
-node bin/moses-install.js install --target "/your/path/moses.md" --force
+node bin/moses-install.js install --target-dir "/your/path/opencode-agents" --force
 ```
