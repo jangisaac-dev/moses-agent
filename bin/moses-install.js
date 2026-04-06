@@ -13,11 +13,16 @@ const [, , command = "help", ...rest] = process.argv;
 function readFlag(name) {
   const index = rest.indexOf(name);
   if (index === -1) return undefined;
-  return rest[index + 1];
+  const value = rest[index + 1];
+  if (!value || value.startsWith("-")) {
+    throw new Error(`Flag ${name} requires a path value.`);
+  }
+  return value;
 }
 
 const options = {
   target: readFlag("--target"),
+  targetDir: readFlag("--target-dir") ?? readFlag("--target"),
   force: rest.includes("--force"),
 };
 

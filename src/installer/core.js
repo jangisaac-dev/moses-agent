@@ -2,10 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   getRepoRoot,
+  listTemplateBundle,
   resolveBackupPath,
-  resolveDefaultTarget,
-  resolveTargetPath,
-  resolveTemplatePath,
+  resolveDefaultTargetDir,
+  resolveTargetDir,
 } from "./paths.js";
 
 const MANAGED_MARKER = "<!-- moses-agent:managed -->";
@@ -18,8 +18,65 @@ function isManagedContent(content) {
   return content.includes(MANAGED_MARKER);
 }
 
-function isDefaultTarget(targetPath) {
-  return targetPath === resolveDefaultTarget();
+function isDefaultTargetDir(targetDir) {
+  return targetDir === resolveDefaultTargetDir();
+}
+
+function targetPathFor(targetDir, targetName) {
+  return path.join(targetDir, targetName);
+}
+
+function readManagedState(targetPath) {
+  if (!fs.existsSync(targetPath)) {
+    return {
+      exists: false,
+      looksManaged: false,
+      forceRequired: false,
+    };
+  }
+
+  const content = readText(targetPath);
+  const looksManaged = isManagedContent(content);
+
+  return {
+    exists: true,
+    looksManaged,
+    forceRequired: !looksManaged,
+  };
+}
+
+function buildBundleValidation(targetDir) {
+  const bundle = listTemplateBundle();
+  const files = bundle.map(({ templateName, templatePath, targetName }) => {
+    const templateExists = fs.existsSync(templatePath);
+    const templateContent = templateExists ? readText(templatePath) : null;
+    const targetPath = targetPathFor(targetDir, targetName);
+    const targetState = readManagedState(targetPath);
+
+    return {
+      templateName,
+      templatePath,
+      templateExists,
+      templateHasManagedMarker: Boolean(templateContent && isManagedContent(templateContent)),
+      targetName,
+      targetPath,
+      targetExists: targetState.exists,
+      targetLooksManaged: targetState.looksManaged,
+      forceRequiredForInstall: targetState.forceRequired,
+      forceRequiredForUninstall: targetState.forceRequired,
+    };
+  });
+
+  return {
+    bundle,
+    files,
+    allTemplatesExist: files.every((file) => file.templateExists),
+    allTemplatesManaged: files.every((file) => file.templateHasManagedMarker),
+    anyTargetExists: files.some((file) => file.targetExists),
+    anyTargetUnmanaged: files.some((file) => file.targetExists && !file.targetLooksManaged),
+    forceRequiredForInstall: !isDefaultTargetDir(targetDir) || files.some((file) => file.forceRequiredForInstall),
+    forceRequiredForUninstall: !isDefaultTargetDir(targetDir) || files.some((file) => file.forceRequiredForUninstall),
+  };
 }
 
 export function printHelp() {
@@ -27,118 +84,131 @@ export function printHelp() {
 
 Usage:
   moses-agent help
-  moses-agent validate [--target <path>]
-  moses-agent install [--target <path>] [--force]
-  moses-agent uninstall [--target <path>] [--force]
+  moses-agent validate [--target-dir <path>]
+  moses-agent install [--target-dir <path>] [--force]
+  moses-agent uninstall [--target-dir <path>] [--force]
 
 Defaults:
-  target: ~/.config/opencode/agents/moses.md
+  target directory: ~/.config/opencode/agents
+  installed files: moses.md + bundled moses-*.md prompts
 
 Safety:
-  --force is required for non-default targets and for removing or replacing
+  --force is required for non-default target directories and for removing or replacing
   files not previously installed by moses-agent.
 `);
 }
 
 export function validateInstall(options = {}) {
-  const templatePath = resolveTemplatePath();
-  const targetPath = resolveTargetPath(options.target);
-  const targetDir = path.dirname(targetPath);
-  const templateExists = fs.existsSync(templatePath);
-  const targetExists = fs.existsSync(targetPath);
-  const templateContent = templateExists ? readText(templatePath) : null;
-  const targetContent = targetExists ? readText(targetPath) : null;
+  const targetDir = resolveTargetDir(options.targetDir ?? options.target);
+  const bundleState = buildBundleValidation(targetDir);
+  const primaryFile = bundleState.files.find((file) => file.targetName === "moses.md");
 
   return {
-    ok: templateExists,
+    ok: bundleState.allTemplatesExist && bundleState.allTemplatesManaged,
     repoRoot: getRepoRoot(),
-    templatePath,
-    templateExists,
-    templateHasManagedMarker: Boolean(templateContent && isManagedContent(templateContent)),
-    targetPath,
     targetDir,
     targetDirExists: fs.existsSync(targetDir),
-    targetExists,
-    targetIsDefault: isDefaultTarget(targetPath),
-    targetLooksManaged: Boolean(targetContent && isManagedContent(targetContent)),
-    forceRequiredForInstall: !isDefaultTarget(targetPath) || Boolean(targetContent && !isManagedContent(targetContent)),
-    forceRequiredForUninstall: !isDefaultTarget(targetPath) || Boolean(targetContent && !isManagedContent(targetContent)),
+    targetIsDefault: isDefaultTargetDir(targetDir),
+    targetPath: primaryFile?.targetPath ?? targetPathFor(targetDir, "moses.md"),
+    templatePath: primaryFile?.templatePath ?? null,
+    templateExists: primaryFile?.templateExists ?? false,
+    templateHasManagedMarker: primaryFile?.templateHasManagedMarker ?? false,
+    targetExists: primaryFile?.targetExists ?? false,
+    targetLooksManaged: primaryFile?.targetLooksManaged ?? false,
+    forceRequiredForInstall: bundleState.forceRequiredForInstall,
+    forceRequiredForUninstall: bundleState.forceRequiredForUninstall,
+    installedFiles: bundleState.files,
   };
 }
 
 export function installAgent(options = {}) {
-  const templatePath = resolveTemplatePath();
-  const targetPath = resolveTargetPath(options.target);
+  const targetDir = resolveTargetDir(options.targetDir ?? options.target);
+  const bundle = listTemplateBundle();
 
-  if (!fs.existsSync(templatePath)) {
-    throw new Error(`Template not found: ${templatePath}`);
+  if (!isDefaultTargetDir(targetDir) && !options.force) {
+    throw new Error(`Non-default target directory requires --force: ${targetDir}`);
   }
 
-  const targetDir = path.dirname(targetPath);
   fs.mkdirSync(targetDir, { recursive: true });
 
-  const templateContent = readText(templatePath);
+  const backupPaths = [];
 
-  if (!isDefaultTarget(targetPath) && !options.force) {
-    throw new Error(`Non-default target requires --force: ${targetPath}`);
-  }
-
-  let backupPath = null;
-  if (fs.existsSync(targetPath)) {
-    const currentContent = readText(targetPath);
-    const targetIsManaged = isManagedContent(currentContent);
-
-    if (!targetIsManaged && !options.force) {
-      throw new Error(`Refusing to overwrite unmanaged target without --force: ${targetPath}`);
+  for (const { templateName, templatePath, targetName } of bundle) {
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`Template not found: ${templatePath}`);
     }
 
-    backupPath = resolveBackupPath(targetPath);
-    fs.copyFileSync(targetPath, backupPath);
-  }
+    const targetPath = targetPathFor(targetDir, targetName);
+    const templateContent = readText(templatePath);
 
-  fs.writeFileSync(targetPath, templateContent, "utf8");
+    if (fs.existsSync(targetPath)) {
+      const currentContent = readText(targetPath);
+      const targetIsManaged = isManagedContent(currentContent);
+
+      if (!targetIsManaged && !options.force) {
+        throw new Error(`Refusing to overwrite unmanaged target without --force: ${targetPath}`);
+      }
+
+      const backupPath = resolveBackupPath(targetPath);
+      fs.copyFileSync(targetPath, backupPath);
+      backupPaths.push({ targetPath, backupPath });
+    }
+
+    fs.writeFileSync(targetPath, templateContent, "utf8");
+  }
 
   return {
     ok: true,
     action: "install",
-    templatePath,
-    targetPath,
-    backupPath,
+    targetDir,
+    installedFiles: bundle.map(({ templateName, templatePath, targetName }) => ({
+      templateName,
+      templatePath,
+      targetName,
+      targetPath: targetPathFor(targetDir, targetName),
+    })),
+    backupPaths,
     forced: Boolean(options.force),
   };
 }
 
 export function uninstallAgent(options = {}) {
-  const targetPath = resolveTargetPath(options.target);
+  const targetDir = resolveTargetDir(options.targetDir ?? options.target);
+  const bundle = listTemplateBundle();
 
-  if (!fs.existsSync(targetPath)) {
-    return {
-      ok: true,
-      action: "uninstall",
-      targetPath,
-      removed: false,
-      reason: "target-not-found",
-    };
+  if (!isDefaultTargetDir(targetDir) && !options.force) {
+    throw new Error(`Non-default target directory uninstall requires --force: ${targetDir}`);
   }
 
-  const currentContent = readText(targetPath);
-  const targetIsManaged = isManagedContent(currentContent);
+  const removedFiles = [];
+  const skippedFiles = [];
 
-  if (!isDefaultTarget(targetPath) && !options.force) {
-    throw new Error(`Non-default target uninstall requires --force: ${targetPath}`);
+  for (const { targetName } of bundle) {
+    const targetPath = targetPathFor(targetDir, targetName);
+
+    if (!fs.existsSync(targetPath)) {
+      skippedFiles.push({ targetPath, reason: "target-not-found" });
+      continue;
+    }
+
+    const currentContent = readText(targetPath);
+    const targetIsManaged = isManagedContent(currentContent);
+
+    if (!targetIsManaged && !options.force) {
+      throw new Error(`Refusing to remove unmanaged target without --force: ${targetPath}`);
+    }
+
+    fs.rmSync(targetPath);
+    removedFiles.push(targetPath);
   }
-
-  if (!targetIsManaged && !options.force) {
-    throw new Error(`Refusing to remove unmanaged target without --force: ${targetPath}`);
-  }
-
-  fs.rmSync(targetPath);
 
   return {
     ok: true,
     action: "uninstall",
-    targetPath,
-    removed: true,
+    targetDir,
+    removed: removedFiles.length > 0,
+    removedFiles,
+    skippedFiles,
     forced: Boolean(options.force),
   };
 }
