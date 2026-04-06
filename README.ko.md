@@ -4,9 +4,9 @@ English version: [`README.md`](./README.md)
 
 OpenCode 스타일 환경에서 재사용할 수 있는 Moses 오케스트레이터 에이전트 패키지입니다.
 
-Moses를 로컬 OpenCode 에이전트 디렉터리에 설치한 뒤 세션을 다시 불러오고, `@moses`로 호출할 수 있습니다.
+번들된 Moses control-plane 팀을 로컬 OpenCode 에이전트 디렉터리에 설치한 뒤 세션을 다시 불러오고, 엔트리포인트를 `@moses`로 호출할 수 있습니다.
 
-`moses-agent`는 Moses 프롬프트를 작고 검토 가능한 저장소 형태로 패키징하여, 버전 관리 하에 유지하고 여러 머신에 일관되게 설치하며, 불필요한 프로젝트 설정 없이 배포할 수 있게 해줍니다.
+`moses-agent`는 Moses control-plane 프롬프트와 번들된 `moses-*` specialist 프롬프트들을 작고 검토 가능한 저장소 형태로 패키징하여, 버전 관리 하에 유지하고 여러 머신에 일관되게 설치하며, 불필요한 프로젝트 설정 없이 배포할 수 있게 해줍니다.
 
 ---
 
@@ -25,7 +25,7 @@ git clone https://github.com/jangisaac-dev/moses-agent.git moses-agent && cd mos
 
 현재 기준으로 가장 쉬운 공식 설치 경로입니다.
 
-`validate` 결과에서 기존 대상 파일이 unmanaged 상태이고 `forceRequiredForInstall` 값이 `true`라면, 바로 덮어쓰지 말고 먼저 상태를 확인하세요.
+`validate` 결과에서 기존 대상 디렉터리에 unmanaged 파일이 있고 `forceRequiredForInstall` 값이 `true`라면, 바로 덮어쓰지 말고 먼저 상태를 확인하세요.
 
 ### 사람이 직접 설치할 때
 
@@ -46,7 +46,7 @@ CLI를 직접 사용하고 싶다면:
 node bin/moses-install.js install
 ```
 
-설치 뒤 대상 경로와 관리 상태를 다시 확인하세요:
+설치 뒤 대상 디렉터리와 번들 관리 상태를 다시 확인하세요:
 
 ```bash
 node bin/moses-install.js validate
@@ -57,21 +57,23 @@ node bin/moses-install.js validate
 아래 프롬프트를 그대로 붙여 넣으면 됩니다:
 
 ```text
-Clone https://github.com/jangisaac-dev/moses-agent.git into a local folder named moses-agent, read README.md and docs/installation.md, run `node bin/moses-install.js validate`, explain whether `forceRequiredForInstall` is true and why, and only if the target/path looks correct run `./install.sh`. After that, tell me the installed target path, whether a backup was created, and remind me to reload or restart OpenCode so `@moses` becomes available.
+Clone https://github.com/jangisaac-dev/moses-agent.git into a local folder named moses-agent, read README.md and docs/installation.md, run `node bin/moses-install.js validate`, explain whether `forceRequiredForInstall` is true and why, and only if the target directory looks correct run `./install.sh`. After that, tell me the installed target directory, which bundle files were written, whether backups were created, and remind me to reload or restart OpenCode so `@moses` becomes available.
 ```
 
 이 방식은 oh-my-opencode처럼 “AI 에이전트에게 구체적인 설치 작업을 맡기는” 흐름에 가깝게 만들면서도, 이 저장소가 실제로 지원하는 명령만 사용합니다.
 
-### 기본 설치 대상
+### 기본 설치 대상 디렉터리
 
 ```text
-~/.config/opencode/agents/moses.md
+~/.config/opencode/agents
 ```
 
-런타임이 다른 경로를 사용한다면 `--target`과 `--force`를 함께 사용하세요.
+설치기는 이 디렉터리에 `moses.md`와 번들된 `moses-*.md` specialist 프롬프트를 함께 씁니다.
+
+런타임이 다른 디렉터리를 사용한다면 `--target-dir`과 `--force`를 함께 사용하세요.
 
 ```bash
-node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.custom.md" --force
+node bin/moses-install.js install --target-dir "$HOME/.config/opencode/agents-custom" --force
 ```
 
 ### 수동 설치
@@ -108,13 +110,15 @@ node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.
 
 ## 이 패키지가 하는 일
 
-이 저장소는 단일 에이전트 파일을 설치하는 데 집중합니다.
+이 저장소는 번들된 Moses control-plane 팀을 설치하는 데 집중합니다.
 
-- Moses 에이전트 프롬프트를 로컬 OpenCode 스타일 에이전트 디렉터리에 설치합니다.
-- 기존 대상 파일을 교체하기 전에 백업을 만듭니다.
+- Moses 엔트리 프롬프트와 번들된 `moses-*` specialist 프롬프트를 로컬 OpenCode 스타일 에이전트 디렉터리에 설치합니다.
+- 기존 managed 대상 파일을 교체하기 전에 백업을 만듭니다.
 - 위험한 overwrite/remove 작업을 기본적으로 거부합니다.
-- `--force`를 사용해 명시적인 사용자 의사 아래 커스텀 대상 설치를 지원합니다.
+- `--force`를 사용해 명시적인 사용자 의사 아래 커스텀 대상 디렉터리 설치를 지원합니다.
 - 재사용 가능한 설치기, 셸 래퍼, 릴리즈 문서를 함께 제공합니다.
+
+이 패키지는 control-plane-first 번들로 볼 수 있다. Moses는 planner/orchestrator/communicator-only로 남고, 번들된 `moses-*` 팀은 기본 내부 specialist 세트로 동작하며, downstream 실행은 worker의 넓은 추론보다 명시적인 delegation packet에 의존한다.
 
 이 패키지는 의도적으로 작습니다. 플러그인, 훅 프레임워크, 대시보드, 런타임 확장 번들이 아닙니다.
 
@@ -133,7 +137,7 @@ node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.
 
 포함 사항:
 
-- Moses 에이전트 템플릿
+- Moses control-plane 템플릿과 번들 specialist 프롬프트
 - Node 기반 설치 CLI
 - 설치 / 제거용 셸 래퍼
 - 덮어쓰기 전 백업 생성
@@ -146,7 +150,7 @@ node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.
 
 v1.0.1에 포함되지 않는 것:
 
-- 에이전트 대상 파일 바깥의 OpenCode 설정 자동 수정
+- 에이전트 대상 디렉터리 바깥의 OpenCode 설정 자동 수정
 - plugin runtime hooks
 - background services 또는 dashboards
 - 자동 npm publish
@@ -172,7 +176,8 @@ moses-agent/
 │   │   ├── core.js
 │   │   └── paths.js
 │   └── templates/
-│       └── agent.md
+│       ├── agent.md
+│       └── moses-*.md
 └── docs/
     ├── installation.md
     ├── manual-install.md
@@ -181,15 +186,17 @@ moses-agent/
 
 ## 지원하는 설치 모델
 
-기본 설치 대상은 다음과 같습니다.
+기본 설치 대상 디렉터리는 다음과 같습니다.
 
 ```text
-~/.config/opencode/agents/moses.md
+~/.config/opencode/agents
 ```
 
-이 경로는 Unix 계열 환경에서 OpenCode 스타일 에이전트를 표준 설정 디렉터리에서 읽는 경우를 기준으로 한 기본 설치 위치입니다.
+이 경로는 Unix 계열 환경에서 OpenCode 스타일 에이전트를 표준 설정 디렉터리에서 읽는 경우를 기준으로 한 기본 설치 디렉터리입니다.
 
-런타임이 다른 경로를 사용한다면 `--target --force`로 설치할 수 있지만, 실제로 그 위치를 런타임이 읽는지는 사용자가 확인해야 합니다.
+설치기는 이 디렉터리에 `moses.md`와 번들된 `moses-*.md` worker 프롬프트를 함께 씁니다.
+
+런타임이 다른 디렉터리를 사용한다면 `--target-dir --force`로 설치할 수 있지만, 실제로 그 위치를 런타임이 읽는지는 사용자가 확인해야 합니다.
 
 ## 빠른 시작
 
@@ -213,13 +220,13 @@ node bin/moses-install.js install
 node bin/moses-install.js validate
 ```
 
-### 커스텀 대상에 설치하기
+### 커스텀 대상 디렉터리에 설치하기
 
 ```bash
-node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.custom.md" --force
+node bin/moses-install.js install --target-dir "$HOME/.config/opencode/agents-custom" --force
 ```
 
-설치 후 OpenCode 세션을 reload 또는 restart 하여 런타임이 에이전트 디렉터리를 다시 읽도록 하세요. 호스트 런타임이 설치된 파일을 읽으면 Moses를 `@moses`로 호출할 수 있습니다.
+설치 후 OpenCode 세션을 reload 또는 restart 하여 런타임이 에이전트 디렉터리를 다시 읽도록 하세요. 호스트 런타임이 설치된 번들을 읽으면 Moses를 `@moses`로 호출하고 번들된 `moses-*` 프롬프트로 라우팅할 수 있습니다.
 
 ## CLI 명령
 
@@ -227,24 +234,24 @@ node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.
 node bin/moses-install.js help
 node bin/moses-install.js validate
 node bin/moses-install.js install
-node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.custom.md" --force
+node bin/moses-install.js install --target-dir "$HOME/.config/opencode/agents-custom" --force
 node bin/moses-install.js uninstall
-node bin/moses-install.js uninstall --target "$HOME/.config/opencode/agents/moses.custom.md" --force
+node bin/moses-install.js uninstall --target-dir "$HOME/.config/opencode/agents-custom" --force
 ```
 
 ## 설치 동작 방식
 
 설치 시 CLI는 다음 순서로 동작합니다.
 
-1. 번들된 템플릿 경로를 확인합니다.
-2. 대상 경로를 확인합니다.
+1. 번들된 템플릿 디렉터리를 확인합니다.
+2. 대상 디렉터리를 확인합니다.
 3. 필요하면 상위 디렉터리를 만듭니다.
-4. 대상 파일이 `moses-agent`가 관리하는 파일인지 검사합니다.
-5. 대상 파일이 이미 있으면 타임스탬프가 붙은 백업을 만듭니다.
-6. Moses 템플릿을 대상 경로에 씁니다.
+4. 각 번들 대상 파일이 `moses-agent`가 관리하는 파일인지 검사합니다.
+5. 기존 대상 파일이 있으면 필요한 경우 타임스탬프가 붙은 백업을 만듭니다.
+6. `moses.md`와 번들된 `moses-*.md` 프롬프트를 대상 디렉터리에 씁니다.
 7. 결과를 구조화된 JSON으로 출력합니다.
 
-기존 대상 파일이 `moses-agent` 관리 파일로 보이지 않으면, `--force` 없이 덮어쓰지 않습니다.
+번들 디렉터리 안의 기존 대상 파일 중 하나라도 `moses-agent` 관리 파일로 보이지 않으면, `--force` 없이 덮어쓰지 않습니다.
 
 ## 안전 모델
 
@@ -268,7 +275,7 @@ node bin/moses-install.js uninstall --target "$HOME/.config/opencode/agents/mose
 <!-- moses-agent:managed -->
 ```
 
-이 marker를 통해 CLI는 패키지가 관리하는 파일과 그렇지 않은 파일을 구분합니다.
+이 marker를 통해 CLI는 설치된 번들 전체에서 패키지가 관리하는 파일과 그렇지 않은 파일을 구분합니다.
 
 ### unmanaged 파일 보호
 
@@ -289,25 +296,25 @@ CLI를 쓰고 싶지 않다면 다음 문서를 참고하세요.
 
 가장 단순하게 지원하는 커스터마이징 경로는 다음과 같습니다.
 
-1. `src/templates/agent.md`를 수정합니다.
+1. `src/templates/` 안의 관련 파일을 수정합니다.
 2. 저장소를 로컬에서 검증합니다.
-3. 원하는 대상에 다시 설치합니다.
+3. 원하는 대상 디렉터리에 번들을 다시 설치합니다.
 
-여러 변형을 관리한다면 명시적인 커스텀 대상을 사용해 주 설치본을 실수로 덮어쓰지 않도록 하세요.
+여러 변형을 관리한다면 명시적인 커스텀 대상 디렉터리를 사용해 주 설치 번들을 실수로 덮어쓰지 않도록 하세요.
 
 ## 검증
 
 내장 validator는 다음 정보를 보고합니다.
 
 - repository root
-- template path
+- target directory
+- 기본 디렉터리 여부
+- 템플릿별 경로와 대상 파일명
 - template presence
 - managed marker presence
-- target path
 - target directory existence
-- target existence
-- 기본 경로 여부
-- target이 managed 상태로 보이는지 여부
+- 각 대상 파일 존재 여부
+- 각 대상 파일이 managed 상태로 보이는지 여부
 - install 또는 uninstall에 `--force`가 필요한지 여부
 
 예시:
@@ -322,14 +329,14 @@ node bin/moses-install.js validate
 
 uninstall 명령은 다음과 같이 동작합니다.
 
-- 대상 파일 존재 여부를 확인합니다.
+- 각 번들 대상 파일 존재 여부를 확인합니다.
 - 기본적으로 unmanaged 대상을 제거하지 않습니다.
-- 비기본 대상에는 `--force`를 요구합니다.
-- 안전 규칙이 허용할 때만 파일을 제거합니다.
+- 비기본 대상 디렉터리에는 `--force`를 요구합니다.
+- 안전 규칙이 허용할 때만 번들 파일을 제거합니다.
 
 백업은 자동으로 복원하지 않습니다. 여러 백업 후보가 존재할 수 있어 자동 선택은 위험할 수 있으므로, v1.0.1에서도 복원은 수동 처리입니다.
 
-제거 후 OpenCode 세션을 reload 또는 restart 하세요. 관련 대상 경로에 대체 에이전트 파일이 없다면 `@moses`를 더 이상 사용할 수 없어야 합니다.
+제거 후 OpenCode 세션을 reload 또는 restart 하세요. 관련 대상 디렉터리에 대체 Moses 번들이 없다면 `@moses`를 더 이상 사용할 수 없어야 합니다.
 
 ## 개발 메모
 
@@ -338,8 +345,8 @@ uninstall 명령은 다음과 같이 동작합니다.
 ```bash
 node bin/moses-install.js help
 node bin/moses-install.js validate
-node bin/moses-install.js install --target "$PWD/tmp/moses-test.md" --force
-node bin/moses-install.js uninstall --target "$PWD/tmp/moses-test.md" --force
+node bin/moses-install.js install --target-dir "$PWD/tmp/opencode-agents" --force
+node bin/moses-install.js uninstall --target-dir "$PWD/tmp/opencode-agents" --force
 ```
 
 ## 릴리즈 가이드
@@ -349,7 +356,7 @@ node bin/moses-install.js uninstall --target "$PWD/tmp/moses-test.md" --force
 1. 문서가 실제 CLI 동작과 일치하는지
 2. unmanaged 파일에 대한 overwrite 거부가 동작하는지
 3. unmanaged 파일에 대한 uninstall 거부가 동작하는지
-4. `--force`를 사용하는 custom-target 동작이 맞는지
+4. `--force`를 사용하는 custom target-directory 동작이 맞는지
 5. `package.json`의 저장소 메타데이터가 실제 GitHub 저장소와 일치하는지
 6. 개인 로컬 경로나 비밀 정보가 남아 있지 않은지
 
@@ -361,7 +368,7 @@ node bin/moses-install.js uninstall --target "$PWD/tmp/moses-test.md" --force
 
 - 기본 설치 동작은 표준 config path를 사용하는 Unix 계열 환경을 기준으로 합니다.
 - ownership detection은 marker 기반이며 cryptographic verification은 아닙니다.
-- 이 패키지는 단일 agent 파일만 관리하며 broader runtime configuration은 다루지 않습니다.
+- 이 패키지는 번들된 agent 엔트리포인트와 worker 프롬프트를 관리하며 broader runtime configuration은 다루지 않습니다.
 - backup restoration은 수동입니다.
 - Full CI와 cross-platform coverage는 v1.0.1에 포함되지 않습니다.
 

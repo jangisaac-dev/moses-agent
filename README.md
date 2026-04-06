@@ -4,9 +4,9 @@
 
 Reusable Moses orchestrator agent package for OpenCode-style environments.
 
-Install Moses into your local OpenCode agent directory, reload your session, and call it as `@moses`.
+Install the bundled Moses control-plane team into your local OpenCode agent directory, reload your session, and call the entrypoint as `@moses`.
 
-`moses-agent` packages the Moses prompt as a small, reviewable repository so you can keep the agent under version control, install it consistently across machines, and distribute it without bundling unrelated project configuration.
+`moses-agent` packages the Moses control-plane prompt plus its bundled `moses-*` specialist prompts as a small, reviewable repository so you can keep the team under version control, install it consistently across machines, and distribute it without bundling unrelated project configuration.
 
 ---
 
@@ -25,7 +25,7 @@ git clone https://github.com/jangisaac-dev/moses-agent.git moses-agent && cd mos
 
 This is the easiest supported install flow today.
 
-If `validate` shows that the existing target is unmanaged and `forceRequiredForInstall` is `true`, stop and review before replacing anything.
+If `validate` shows that the existing target directory contains unmanaged files and `forceRequiredForInstall` is `true`, stop and review before replacing anything.
 
 ### For humans
 
@@ -46,7 +46,7 @@ If you prefer the CLI directly:
 node bin/moses-install.js install
 ```
 
-After installation, verify the target path and management state:
+After installation, verify the target directory and bundle management state:
 
 ```bash
 node bin/moses-install.js validate
@@ -57,21 +57,23 @@ node bin/moses-install.js validate
 Paste this into your coding agent:
 
 ```text
-Clone https://github.com/jangisaac-dev/moses-agent.git into a local folder named moses-agent, read README.md and docs/installation.md, run `node bin/moses-install.js validate`, explain whether `forceRequiredForInstall` is true and why, and only if the target/path looks correct run `./install.sh`. After that, tell me the installed target path, whether a backup was created, and remind me to reload or restart OpenCode so `@moses` becomes available.
+Clone https://github.com/jangisaac-dev/moses-agent.git into a local folder named moses-agent, read README.md and docs/installation.md, run `node bin/moses-install.js validate`, explain whether `forceRequiredForInstall` is true and why, and only if the target directory looks correct run `./install.sh`. After that, tell me the installed target directory, which bundle files were written, whether backups were created, and remind me to reload or restart OpenCode so `@moses` becomes available.
 ```
 
 This keeps the AI-agent flow close to oh-my-opencode's "give the agent a concrete installation task" style, while only using commands this repository actually supports today.
 
-### Default install target
+### Default install target directory
 
 ```text
-~/.config/opencode/agents/moses.md
+~/.config/opencode/agents
 ```
 
-If your runtime uses a different path, install with `--target` and `--force`.
+The installer writes `moses.md` plus the bundled `moses-*.md` specialist prompts into this directory.
+
+If your runtime uses a different directory, install with `--target-dir` and `--force`.
 
 ```bash
-node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.custom.md" --force
+node bin/moses-install.js install --target-dir "$HOME/.config/opencode/agents-custom" --force
 ```
 
 ### Manual installation
@@ -107,13 +109,15 @@ For the full install guide used by both humans and AI agents, see [`docs/install
 
 ## What this package does
 
-This repository provides a focused way to install a single agent file:
+This repository provides a focused way to install a bundled Moses control-plane team:
 
-- installs the Moses agent prompt into a local OpenCode-style agent directory,
-- backs up an existing target file before replacement,
+- installs the Moses entry prompt plus bundled `moses-*` specialist prompts into a local OpenCode-style agent directory,
+- backs up existing managed target files before replacement,
 - refuses risky overwrite/remove operations by default,
-- supports explicit custom target installation with `--force`,
+- supports explicit custom target-directory installation with `--force`,
 - ships a reusable installer, shell wrappers, and release docs.
+
+This package is a control-plane-first bundle: Moses stays planner/orchestrator/communicator-only, the bundled `moses-*` team serves as the default internal specialist set, and downstream execution relies on explicit delegation packets rather than broad worker inference.
 
 The package is intentionally small. It is **not** a plugin, hook framework, dashboard, or runtime extension bundle.
 
@@ -132,7 +136,7 @@ Version `1.0.1` keeps the package intentionally focused.
 
 Included:
 
-- Moses agent template
+- Moses control-plane template plus bundled specialist prompts
 - Node-based installer CLI
 - shell wrappers for install / uninstall
 - backup-before-overwrite behavior
@@ -145,7 +149,7 @@ Included:
 
 Not included in v1.0.1:
 
-- automatic OpenCode config mutation outside the agent target file
+- automatic OpenCode config mutation outside the agent target directory
 - plugin runtime hooks
 - background services or dashboards
 - automatic npm publishing
@@ -171,7 +175,8 @@ moses-agent/
 │   │   ├── core.js
 │   │   └── paths.js
 │   └── templates/
-│       └── agent.md
+│       ├── agent.md
+│       └── moses-*.md
 └── docs/
     ├── installation.md
     ├── manual-install.md
@@ -180,15 +185,17 @@ moses-agent/
 
 ## Supported install model
 
-The supported default target is:
+The supported default target directory is:
 
 ```text
-~/.config/opencode/agents/moses.md
+~/.config/opencode/agents
 ```
 
-This is the default install path for Unix-like environments where OpenCode-style agents are loaded from the standard config directory.
+This is the default install directory for Unix-like environments where OpenCode-style agents are loaded from the standard config directory.
 
-If your runtime uses a different path, you can still install there with `--target --force`, but you are responsible for making sure your runtime actually reads that location.
+The installer writes `moses.md` plus the bundled `moses-*.md` worker prompts into that directory.
+
+If your runtime uses a different directory, you can still install there with `--target-dir --force`, but you are responsible for making sure your runtime actually reads that location.
 
 ## Quick start
 
@@ -212,13 +219,13 @@ node bin/moses-install.js install
 node bin/moses-install.js validate
 ```
 
-### Install to a custom target
+### Install to a custom target directory
 
 ```bash
-node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.custom.md" --force
+node bin/moses-install.js install --target-dir "$HOME/.config/opencode/agents-custom" --force
 ```
 
-After installation, reload or restart your OpenCode session so the runtime can re-read the agent directory. When the host runtime loads the installed file, Moses becomes callable as `@moses`.
+After installation, reload or restart your OpenCode session so the runtime can re-read the agent directory. When the host runtime loads the installed bundle, Moses becomes callable as `@moses` and can route to the bundled `moses-*` prompts.
 
 ## CLI commands
 
@@ -226,24 +233,24 @@ After installation, reload or restart your OpenCode session so the runtime can r
 node bin/moses-install.js help
 node bin/moses-install.js validate
 node bin/moses-install.js install
-node bin/moses-install.js install --target "$HOME/.config/opencode/agents/moses.custom.md" --force
+node bin/moses-install.js install --target-dir "$HOME/.config/opencode/agents-custom" --force
 node bin/moses-install.js uninstall
-node bin/moses-install.js uninstall --target "$HOME/.config/opencode/agents/moses.custom.md" --force
+node bin/moses-install.js uninstall --target-dir "$HOME/.config/opencode/agents-custom" --force
 ```
 
 ## Install behavior
 
 On install, the CLI:
 
-1. resolves the bundled template,
-2. resolves the target path,
+1. resolves the bundled templates directory,
+2. resolves the target directory,
 3. creates parent directories when needed,
-4. checks whether the target is managed by `moses-agent`,
-5. creates a timestamped backup if the target already exists,
-6. writes the Moses template to the target path,
+4. checks whether each existing bundle target is managed by `moses-agent`,
+5. creates timestamped backups for existing target files when needed,
+6. writes `moses.md` plus bundled `moses-*.md` prompts into the target directory,
 7. reports the result as structured JSON.
 
-If the existing target does not look like a `moses-agent` managed file, install refuses to overwrite it unless `--force` is supplied.
+If any existing target file in the bundle directory does not look like a `moses-agent` managed file, install refuses to overwrite it unless `--force` is supplied.
 
 ## Safety model
 
@@ -267,7 +274,7 @@ The bundled template includes a marker:
 <!-- moses-agent:managed -->
 ```
 
-This marker lets the CLI distinguish package-managed files from unrelated files.
+This marker lets the CLI distinguish package-managed files from unrelated files across the installed bundle.
 
 ### Unmanaged file protection
 
@@ -288,25 +295,25 @@ Manual installation is useful for audited environments, packaging experiments, o
 
 The simplest supported customization path is to:
 
-1. edit `src/templates/agent.md`,
+1. edit the relevant files in `src/templates/`,
 2. validate the repository locally,
-3. install it again to the desired target.
+3. install the bundle again to the desired target directory.
 
-If you maintain multiple variants, use explicit custom targets so you do not accidentally overwrite your main Moses install.
+If you maintain multiple variants, use explicit custom target directories so you do not accidentally overwrite your main Moses bundle.
 
 ## Validation
 
 The built-in validator reports:
 
 - repository root,
-- template path,
+- target directory,
+- whether the target directory is the default path,
+- per-template paths and target filenames,
 - template presence,
 - managed marker presence,
-- target path,
 - target directory existence,
-- target existence,
-- whether the target is the default path,
-- whether the target looks managed,
+- per-target existence,
+- whether each target looks managed,
 - whether `--force` would be required for install or uninstall.
 
 Example:
@@ -321,14 +328,14 @@ This validator is a path-and-ownership check. It is **not** a full compatibility
 
 The uninstall command:
 
-- checks whether the target exists,
+- checks whether each bundle target exists,
 - refuses to remove unmanaged targets by default,
-- requires `--force` for non-default targets,
-- removes the file only when the safety rules permit it.
+- requires `--force` for non-default target directories,
+- removes bundle files only when the safety rules permit it.
 
 It does **not** automatically restore backups. Backup restoration is intentionally manual in v1.0.1 because multiple candidate backups may exist and automatic selection would be error-prone.
 
-After uninstall, reload or restart your OpenCode session. If no replacement agent file exists at the relevant target path, `@moses` should no longer be available.
+After uninstall, reload or restart your OpenCode session. If no replacement Moses bundle exists at the relevant target directory, `@moses` should no longer be available.
 
 ## Development notes
 
@@ -337,8 +344,8 @@ Useful local commands:
 ```bash
 node bin/moses-install.js help
 node bin/moses-install.js validate
-node bin/moses-install.js install --target "$PWD/tmp/moses-test.md" --force
-node bin/moses-install.js uninstall --target "$PWD/tmp/moses-test.md" --force
+node bin/moses-install.js install --target-dir "$PWD/tmp/opencode-agents" --force
+node bin/moses-install.js uninstall --target-dir "$PWD/tmp/opencode-agents" --force
 ```
 
 ## Release guidance
@@ -348,7 +355,7 @@ Before shipping this repository:
 1. verify docs match actual CLI behavior,
 2. verify overwrite refusal for unmanaged files,
 3. verify uninstall refusal for unmanaged files,
-4. verify custom-target behavior with `--force`,
+4. verify custom target-directory behavior with `--force`,
 5. verify repository metadata in `package.json` matches the actual GitHub repository,
 6. verify no private local paths or secrets remain.
 
@@ -360,7 +367,7 @@ Release notes and checklist details are in:
 
 - Default install behavior targets Unix-like systems using the standard config path.
 - Ownership detection is marker-based, not cryptographic.
-- The package manages a single agent file; it does not manage broader runtime configuration.
+- The package manages a bundled agent directory entrypoint plus worker prompts; it does not manage broader runtime configuration.
 - Backup restoration is manual.
 - Full CI and cross-platform coverage are not included in v1.0.1.
 
