@@ -89,7 +89,7 @@ node bin/moses-install.js install --target-dir "$HOME/.config/opencode/agents-cu
 - [설치](#설치)
 - [이 패키지가 하는 일](#이-패키지가-하는-일)
 - [누가 쓰면 좋은가](#누가-쓰면-좋은가)
-- [v1.0.1 범위](#v101-범위)
+- [v1.0.2 범위](#v102-범위)
 - [의도적으로 제외한 범위](#의도적으로-제외한-범위)
 - [저장소 구조](#저장소-구조)
 - [지원하는 설치 모델](#지원하는-설치-모델)
@@ -109,6 +109,17 @@ node bin/moses-install.js install --target-dir "$HOME/.config/opencode/agents-cu
 ---
 
 ## 이 패키지가 하는 일
+
+## 호스트별 브레인스토밍 UX
+
+Moses가 초기에 bounded clarification이 필요하다고 판단하면, 먼저 현재 호스트 런타임이 어떤 상호작용 수단을 제공하는지 확인합니다.
+
+- OpenCode처럼 구조화된 질문 도구를 지원하는 런타임에서는 select-style intake prompt를 사용할 수 있습니다.
+- 일반 CLI 환경에서는 번호형 선택지와 자유 입력으로 폴백합니다.
+- text-only 환경에서는 짧은 다지선다 문장을 plain text로 제시합니다.
+- 요청이 이미 충분히 구체적이면 이 레이어를 건너뛰고 기존 planning-first 흐름으로 바로 진행합니다.
+
+이 adapter는 초기 intake의 UX만 바꿉니다. Moses의 planning, approval, orchestration, validation 로직은 바꾸지 않습니다.
 
 이 저장소는 번들된 Moses control-plane 팀을 설치하는 데 집중합니다.
 
@@ -131,9 +142,9 @@ node bin/moses-install.js install --target-dir "$HOME/.config/opencode/agents-cu
 - 설정 디렉터리에 쓰기 전에 설치 동작을 검토하고 싶을 때
 - private/public GitHub 저장소 형태로 에이전트를 배포하고 싶을 때
 
-## v1.0.1 범위
+## v1.0.2 범위
 
-버전 `1.0.1`은 기능을 넓히기보다 핵심 설치 흐름에 집중합니다.
+버전 `1.0.2`는 기능을 넓히기보다 핵심 설치 흐름에 집중하면서, 초기 intake 단계에 호스트별 브레인스토밍 UX를 추가합니다.
 
 포함 사항:
 
@@ -145,10 +156,11 @@ node bin/moses-install.js install --target-dir "$HOME/.config/opencode/agents-cu
 - 명시적 `--force`와 함께 사용하는 커스텀 대상 지원
 - 수동 설치 문서
 - 릴리즈 준비 문서
+- 모호한 요청을 위한 호스트별 브레인스토밍 UX
 
 ## 의도적으로 제외한 범위
 
-v1.0.1에 포함되지 않는 것:
+v1.0.2에 포함되지 않는 것:
 
 - 에이전트 대상 디렉터리 바깥의 OpenCode 설정 자동 수정
 - plugin runtime hooks
@@ -334,7 +346,7 @@ uninstall 명령은 다음과 같이 동작합니다.
 - 비기본 대상 디렉터리에는 `--force`를 요구합니다.
 - 안전 규칙이 허용할 때만 번들 파일을 제거합니다.
 
-백업은 자동으로 복원하지 않습니다. 여러 백업 후보가 존재할 수 있어 자동 선택은 위험할 수 있으므로, v1.0.1에서도 복원은 수동 처리입니다.
+백업은 자동으로 복원하지 않습니다. 여러 백업 후보가 존재할 수 있어 자동 선택은 위험할 수 있으므로, v1.0.2에서도 복원은 수동 처리입니다.
 
 제거 후 OpenCode 세션을 reload 또는 restart 하세요. 관련 대상 디렉터리에 대체 Moses 번들이 없다면 `@moses`를 더 이상 사용할 수 없어야 합니다.
 
@@ -370,7 +382,7 @@ node bin/moses-install.js uninstall --target-dir "$PWD/tmp/opencode-agents" --fo
 - ownership detection은 marker 기반이며 cryptographic verification은 아닙니다.
 - 이 패키지는 번들된 agent 엔트리포인트와 worker 프롬프트를 관리하며 broader runtime configuration은 다루지 않습니다.
 - backup restoration은 수동입니다.
-- Full CI와 cross-platform coverage는 v1.0.1에 포함되지 않습니다.
+- Full CI와 cross-platform coverage는 v1.0.2에 포함되지 않습니다.
 
 ## 라이선스
 

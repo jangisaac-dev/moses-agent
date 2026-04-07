@@ -89,7 +89,7 @@ For the full install guide used by both humans and AI agents, see [`docs/install
 - [Installation](#installation)
 - [What this package does](#what-this-package-does)
 - [Who this is for](#who-this-is-for)
-- [v1.0.1 scope](#v101-scope)
+- [v1.0.2 scope](#v102-scope)
 - [What is intentionally out of scope](#what-is-intentionally-out-of-scope)
 - [Repository layout](#repository-layout)
 - [Supported install model](#supported-install-model)
@@ -108,6 +108,17 @@ For the full install guide used by both humans and AI agents, see [`docs/install
 ---
 
 ## What this package does
+
+## Host-aware brainstorming UX
+
+When Moses needs bounded up-front clarification, it first checks what interaction affordances the current host runtime exposes.
+
+- In OpenCode-style runtimes with structured question support, Moses can present select-style intake prompts.
+- In generic CLI environments, Moses falls back to numbered text choices plus freeform input.
+- In text-only environments, Moses uses short multiple-choice phrasing in plain text.
+- Precise requests skip this layer and continue through the normal planning-first flow.
+
+This adapter changes the user experience of the initial intake only. It does **not** change Moses's planning, approval, orchestration, or validation logic.
 
 This repository provides a focused way to install a bundled Moses control-plane team:
 
@@ -130,9 +141,9 @@ Use `moses-agent` if you want to:
 - review install behavior before writing into your config directory,
 - package the agent for private or public GitHub distribution.
 
-## v1.0.1 scope
+## v1.0.2 scope
 
-Version `1.0.1` keeps the package intentionally focused.
+Version `1.0.2` keeps the package intentionally focused while adding host-aware brainstorming UX at the intake layer.
 
 Included:
 
@@ -144,10 +155,11 @@ Included:
 - custom target support with explicit force flag
 - manual install documentation
 - release preparation documentation
+- host-aware brainstorming UX for vague intake requests
 
 ## What is intentionally out of scope
 
-Not included in v1.0.1:
+Not included in v1.0.2:
 
 - automatic OpenCode config mutation outside the agent target directory
 - plugin runtime hooks
@@ -333,7 +345,7 @@ The uninstall command:
 - requires `--force` for non-default target directories,
 - removes bundle files only when the safety rules permit it.
 
-It does **not** automatically restore backups. Backup restoration is intentionally manual in v1.0.1 because multiple candidate backups may exist and automatic selection would be error-prone.
+It does **not** automatically restore backups. Backup restoration is intentionally manual in v1.0.2 because multiple candidate backups may exist and automatic selection would be error-prone.
 
 After uninstall, reload or restart your OpenCode session. If no replacement Moses bundle exists at the relevant target directory, `@moses` should no longer be available.
 
@@ -369,7 +381,7 @@ Release notes and checklist details are in:
 - Ownership detection is marker-based, not cryptographic.
 - The package manages a bundled agent directory entrypoint plus worker prompts; it does not manage broader runtime configuration.
 - Backup restoration is manual.
-- Full CI and cross-platform coverage are not included in v1.0.1.
+- Full CI and cross-platform coverage are not included in v1.0.2.
 
 ## License
 
