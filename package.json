@@ -1,6 +1,6 @@
 {
   "name": "moses-agent",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Downloadable Moses orchestrator agent package for OpenCode.",
   "license": "MIT",
   "type": "module",
