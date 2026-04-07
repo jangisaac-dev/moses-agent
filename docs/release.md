@@ -1,8 +1,8 @@
-# Release notes for v1.0.1
+# Release notes for v1.0.2
 
 ## Release objective
 
-Ship `moses-agent` v1.0.1 as an easy-to-install GitHub repository with prominent install docs, a Korean README variant, and validated local install behavior.
+Ship `moses-agent` v1.0.2 as an easy-to-install GitHub repository with host-aware brainstorming UX, aligned bilingual docs, and validated local install/runtime behavior.
 
 ## Release focus
 
@@ -11,9 +11,10 @@ Ship `moses-agent` v1.0.1 as an easy-to-install GitHub repository with prominent
 - ship a Korean README variant for local users
 - keep all claims aligned with commands the repository actually supports
 
-## Before releasing v1.0.1
+## Before releasing v1.0.2
 
 - verify `README.md` matches actual install behavior
+- verify the host-aware brainstorming UX docs match the current prompt contract
 - verify `install.sh` and `uninstall.sh` work on a clean machine
 - verify backup behavior when `moses.md` already exists
 - verify overwrite refusal for unmanaged files without `--force`
@@ -27,7 +28,7 @@ Ship `moses-agent` v1.0.1 as an easy-to-install GitHub repository with prominent
 2. Validate install and uninstall in a temporary target path.
 3. Validate managed-vs-unmanaged safety behavior.
 4. Confirm the bundled template is the intended Moses prompt.
-5. Tag the release as `v1.0.1`.
+5. Tag the release as `v1.0.2`.
 6. Publish the GitHub release notes.
 
 ## Private release checklist
@@ -42,6 +43,7 @@ Ship `moses-agent` v1.0.1 as an easy-to-install GitHub repository with prominent
 - surface the supported install flow at the top of the README
 - add a Korean README variant with links back to the English original
 - keep installation docs aligned with the current CLI safety model
+- add a host-aware brainstorming UX layer that adapts vague intake to the current runtime without changing Moses control-plane logic
 
 ## Future enhancements
 
